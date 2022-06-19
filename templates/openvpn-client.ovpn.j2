@@ -1,0 +1,25 @@
+client
+dev tun
+proto {{ openvpn_remote_protocol }}
+remote {{ openvpn_remote_address }} {{ openvpn_remote_port }}
+float
+resolv-retry infinite
+nobind
+persist-key
+persist-tun
+verb 3
+
+<ca>
+{{ openvpn_client_ca }}
+</ca>
+<cert>
+{{ openvpn_client_cert }}
+</cert>
+<key>
+{{ openvpn_client_key }}
+</key>
+{% if openvpn_tls_auth %}
+<tls-auth>
+{{ ta_key.content }}
+</tls-auth>
+{% endif %}

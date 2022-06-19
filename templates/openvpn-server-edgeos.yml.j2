@@ -1,0 +1,24 @@
+---
+# This file contains one variable: config. It uses Jinja2 to render the configuration.
+config:
+- set interfaces openvpn {{ openvpn_server_interface }} mode server
+- set interfaces openvpn {{ openvpn_server_interface }} server subnet {{ openvpn_server_subnet }}
+- set interfaces openvpn {{ openvpn_server_interface }} server name-server {{ openvpn_server_name_server }}
+- set interfaces openvpn {{ openvpn_server_interface }} server domain-name int.TomWishaupt.nl
+{% for route in openvpn_server_push_routes %}
+- set interfaces openvpn {{ openvpn_server_interface }} server push-route {{ route }}
+{% endfor %}
+- set interfaces openvpn {{ openvpn_server_interface }} tls ca-cert-file {{ openvpn_easyrsa_pki }}/ca.crt
+- set interfaces openvpn {{ openvpn_server_interface }} tls cert-file {{ openvpn_easyrsa_pki }}/issued/{{ ansible_hostname }}.crt
+- set interfaces openvpn {{ openvpn_server_interface }} tls key-file {{ openvpn_easyrsa_pki }}/private/{{ ansible_hostname }}.key
+- set interfaces openvpn {{ openvpn_server_interface }} tls dh-file {{ openvpn_easyrsa_pki }}/dh.pem
+{% if openvpn_tls_auth %}
+- set interfaces openvpn {{ openvpn_server_interface }} openvpn-option "--tls-auth {{ openvpn_easyrsa_pki }}/ta.key 0"
+{% endif %}
+- set interfaces openvpn {{ openvpn_server_interface }} openvpn-option "--proto {{ openvpn_remote_protocol }}"
+- set interfaces openvpn {{ openvpn_server_interface }} openvpn-option "--keepalive 10 120"
+- set interfaces openvpn {{ openvpn_server_interface }} openvpn-option "--user nobody --group nogroup"
+- set interfaces openvpn {{ openvpn_server_interface }} openvpn-option "--port {{ openvpn_remote_port }}"
+- set interfaces openvpn {{ openvpn_server_interface }} openvpn-option "--client-to-client"
+- set interfaces openvpn {{ openvpn_server_interface }} openvpn-option "--persist-key"
+- set interfaces openvpn {{ openvpn_server_interface }} openvpn-option "--persist-tun"

@@ -1,0 +1,168 @@
+---
+# I'm really sorry for `command`s here. I don't feel like writing a module for EasyRSA.
+
+- name: Check if EasyRSA is already installed
+  stat:
+    path: "{{ openvpn_easyrsa_install_location }}"
+  register: easyrsa_install_status
+
+  # Because of weird Ansible behaviour with when in a block, always lookup EasyRSA version.
+- name: Find latest EasyRSA version and assets
+  uri:
+    url: https://api.github.com/repos/openvpn/easy-rsa/releases
+    return_content: yes
+  register: easyrsa_releases
+
+- name: Install EasyRSA as tarball
+  when: not easyrsa_install_status.stat.exists
+  block:
+  - name: Discover download URL
+    set_fact:
+      easyrsa_download_url: "{{ item }}"
+    loop: "{{ easyrsa_releases.json | json_query('[0].assets[].browser_download_url') | default([]) }}"
+    when: item.endswith('.tgz')
+  - name: Download EasyRSA release tarball
+    uri:
+      url: "{{ easyrsa_download_url }}"
+      dest: /tmp/easyrsa-release.tgz
+  - name: Create temporary directory
+    file:
+      path: /tmp/easyrsa-archive
+      state: directory
+  - name: Extract EaseRSA archive
+    unarchive:
+      src: /tmp/easyrsa-release.tgz
+      dest: /tmp/easyrsa-archive
+      remote_src: yes
+  - name: Copy from extracted archive to install location
+    become: yes
+    delegate_to: "{{ inventory_hostname }}"
+    copy:
+      src: "/tmp/easyrsa-archive/{{ '.'.join(easyrsa_download_url.split('/')[-1].split('.')[0:-1]) }}/"
+      dest: "{{ openvpn_easyrsa_install_location }}"
+      remote_src: yes
+  always:
+  - name: Delete EasyRSA archive location
+    file:
+      path: /tmp/easyrsa-archive
+      state: absent
+  - name: Delete EasyRSA release tarball
+    file:
+      path: /tmp/easyrsa-release.tgz
+      state: absent
+
+#- name: Check if CA is already provisioned
+#  stat:
+#    path: "{{ openvpn_easyrsa_pki }}/private/ca.key"
+#  register: easyrsa_ca_status
+
+- name: Initialize and provision CA
+  become: yes
+  block:
+  - name: Initialize PKI
+    ansible.builtin.command: "./easyrsa --pki-dir={{ openvpn_easyrsa_pki }} init-pki"
+    args:
+      creates: "{{ openvpn_easyrsa_pki }}/private"
+      chdir: "{{ openvpn_easyrsa_install_location }}"
+  - name: Configure permissions for PKI directory
+    ansible.builtin.file:
+      path: "{{ openvpn_easyrsa_pki }}"
+      state: directory
+      owner: root
+      group: root
+      mode: '0700'
+  - name: Copy vars.example to vars
+    ansible.builtin.copy:
+      src: "{{ openvpn_easyrsa_pki }}/vars.example"
+      dest: "{{ openvpn_easyrsa_pki }}/vars"
+      remote_src: yes
+      force: no
+  - name: Configure EasyRSA vars file
+    ansible.builtin.lineinfile:
+      path: "{{ openvpn_easyrsa_pki }}/vars"
+      regexp: "set_var {{ item.search }}\\s"
+      line: 'set_var {{ item.search }} "{{ item.line }}"'
+      state: present
+    loop_control:
+      label: "{{ item.search }}"
+    loop:
+    - search: EASYRSA_PKI
+      line: "{{ openvpn_easyrsa_pki }}"
+    - search: EASYRSA_KEY_SIZE
+      line: "{{ openvpn_easyrsa_key_size }}"
+    - search: EASYRSA_CA_EXPIRE
+      line: "{{ openvpn_easyrsa_ca_expire }}"
+    - search: EASYRSA_CERT_EXPIRE
+      line: "{{ openvpn_easyrsa_cert_expire }}"
+    - search: EASYRSA_CRL_DAYS
+      line: "{{ openvpn_easyrsa_crl_days }}"
+    - search: EASYRSA_DN
+      line: "cn_only"
+    - search: EASYRSA_REQ_COUNTRY
+      line: "{{ openvpn_easyrsa_req_country }}"
+    - search: EASYRSA_REQ_PROVINCE
+      line: "{{ openvpn_easyrsa_req_province }}"
+    - search: EASYRSA_REQ_CITY
+      line: "{{ openvpn_easyrsa_req_city }}"
+    - search: EASYRSA_REQ_ORG
+      line: "{{ openvpn_easyrsa_req_org }}"
+    - search: EASYRSA_REQ_EMAIL
+      line: "{{ openvpn_easyrsa_req_email }}"
+    - search: EASYRSA_REQ_OU
+      line: "{{ openvpn_easyrsa_req_ou }}"
+    - search: EASYRSA_BATCH
+      line: "1"
+
+- name: Build CA
+  become: yes
+  ansible.builtin.expect:
+    command: "{{ openvpn_easyrsa_install_location }}/easyrsa build-ca"
+    creates: "{{ openvpn_easyrsa_pki }}/ca.crt"
+    chdir: "{{ openvpn_easyrsa_pki }}"
+    timeout: 300
+    responses:
+      "New CA Key Passphrase:": "{{ openvpn_easyrsa_ca_pass }}"
+
+- name: Server certificate
+  become: yes
+  block:
+  - name: Generate server request
+    ansible.builtin.expect:
+      command: "{{ openvpn_easyrsa_install_location }}/easyrsa gen-req {{ ansible_hostname }} nopass"
+      chdir: "{{ openvpn_easyrsa_pki }}"
+      timeout: 300
+      creates: "{{ openvpn_easyrsa_pki }}/reqs/{{ ansible_hostname }}.req"
+      responses:
+        "Enter pass phrase for.*:": "{{ openvpn_easyrsa_ca_pass }}"
+
+  - name: Sign server request
+    ansible.builtin.expect:
+      command: "{{ openvpn_easyrsa_install_location }}/easyrsa sign-req server {{ ansible_hostname }}"
+      chdir: "{{ openvpn_easyrsa_pki }}"
+      timeout: 300
+      creates: "{{ openvpn_easyrsa_pki }}/issued/{{ ansible_hostname }}.crt"
+      responses:
+        "Enter pass phrase for.*:": "{{ openvpn_easyrsa_ca_pass }}"
+
+- name: Client certificates
+  loop: "{{ openvpn_easyrsa_clients }}"
+  loop_control:
+    label: "{{ item.hostname }}"
+  include_tasks: easyrsa-client.yml
+  args:
+    apply:
+      become: yes
+
+  #- name: Revoke old certificates
+  #  block:
+  #  - name: List filenames of current and valid certificates
+  #    find:
+  #      paths: "{{ openvpn_easyrsa_pki }}/issued"
+  #    register: easyrsa_issued_files
+  #  - name: Get serials of current certificates
+  #    community.crypto.x509_certificate_info:
+  #      path: "{{ item.path }}"
+  #    loop: "{{ easyrsa_issued_files.files }}"
+  #    register: easyrsa_issued_info
+  #  - debug:
+  #      var: easyrsa_issued_info

@@ -1,0 +1,36 @@
+---
+- name: EasyRSA
+  include_tasks: easyrsa.yml
+  tags:
+  - easyrsa
+
+- name: OpenVPN Server setup (EdgeOS)
+  when: ansible_user_shell == "/bin/vbash"
+  include_tasks: openvpn-server-edgeos.yml
+  tags:
+  - openvpn
+  - openvpn-server
+
+- name: OpenVPN Server setup (Linux and Systemd)
+  when:
+  - ansible_user_shell != "/bin/vbash"
+  - ansible_service_mgr == "systemd"
+  include_tasks: openvpn-server-systemd.yml
+  tags:
+  - openvpn
+  - openvpn-server
+  args:
+    apply:
+      become: yes
+
+- name: OpenVPN client configs
+  include_tasks: openvpn-client.yml
+  loop: "{{ openvpn_easyrsa_clients }}"
+  loop_control:
+    label: "{{ item.hostname }}"
+  args:
+    apply:
+      become: yes
+  tags:
+  - openvpn
+  - openvpn-client

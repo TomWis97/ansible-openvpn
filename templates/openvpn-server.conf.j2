@@ -1,0 +1,23 @@
+server {{ openvpn_server_subnet | ansible.utils.ipaddr('network') }} {{ openvpn_server_subnet | ansible.utils.ipaddr('netmask') }}
+port {{ openvpn_remote_port }}
+proto {{ openvpn_remote_protocol }}
+dev tun
+ca {{ openvpn_easyrsa_pki }}/ca.crt
+cert {{ openvpn_easyrsa_pki }}/issued/{{ ansible_hostname }}.crt
+key {{ openvpn_easyrsa_pki }}/private/{{ ansible_hostname }}.key
+dh {{ openvpn_easyrsa_pki }}/dh.pem
+topology subnet
+{% for route in openvpn_server_push_routes %}
+push "route {{ route | ansible.utils.ipaddr('network') }} {{ route | ansible.utils.ipaddr('netmask') }}"
+{% endfor %}
+push "dhcp-option DNS {{ openvpn_server_name_server }}"
+push "dhcp-option DOMAIN {{ openvpn_server_domain_name }}"
+dev {{ openvpn_server_interface }}
+client-to-client
+keepalive 10 120
+user nobody
+group nogroup
+persist-key
+persist-tun
+verb 3
+status /tmp/openvpn-server-status-{{ openvpn_server_interface }}

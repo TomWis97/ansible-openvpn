@@ -1,0 +1,27 @@
+---
+openvpn_easyrsa_install_location: /opt/easyrsa
+openvpn_easyrsa_pki: /etc/pki-ca
+openvpn_easyrsa_key_size: 4096
+openvpn_easyrsa_ca_expire: 3650
+openvpn_easyrsa_cert_expire: 1095
+openvpn_easyrsa_crl_days: 365
+openvpn_easyrsa_req_country: NL
+openvpn_easyrsa_req_province: Utrecht
+openvpn_easyrsa_req_city: Utrecht
+openvpn_easyrsa_req_org: OpenVPN-role
+openvpn_easyrsa_req_email: openvpn@example.com
+openvpn_easyrsa_req_ou: VPN Server
+openvpn_easyrsa_ca_pass: changeme!
+openvpn_easyrsa_clients:
+- hostname: client1
+- hostname: client2
+  password: client2
+openvpn_remote_address: example.com
+openvpn_remote_port: 1194
+openvpn_remote_protocol: udp
+openvpn_server_interface: vtun0
+openvpn_server_subnet: 10.254.254.0/24
+openvpn_server_push_routes: []
+openvpn_server_name_server: 10.254.254.1
+openvpn_server_domain_name: example.com
+openvpn_tls_auth: yes

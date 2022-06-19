@@ -1,0 +1,39 @@
+---
+- name: Install OpenVPN
+  ansible.builtin.package:
+    name: openvpn
+    state: present
+
+- name: Common OpenVPN server tasks
+  include_tasks: openvpn-server-common.yml
+  tags:
+  - openvpn
+  - openvpn-server
+
+- name: Place OpenVPN Server config
+  template:
+    dest: "/etc/openvpn/server/{{ openvpn_server_interface }}.conf"
+    mode: '600'
+    owner: root
+    src: openvpn-server.conf.j2
+  notify: Restart OpenVPN
+
+- name: Enable OpenVPN Service
+  systemd:
+    enabled: yes
+    name: "openvpn-server@{{ openvpn_server_interface }}"
+    state: started
+    daemon_reload: yes # Just to be sure that Systemd is aware of the file we just placed
+
+- name: Retrieve service facts
+  ansible.builtin.service_facts:
+
+- name: Allow VPN through firewalld
+  firewalld:
+    immediate: yes
+    permanent: yes
+    port: "{{ openvpn_remote_port }}/{{ openvpn_remote_protocol }}"
+    state: enabled
+  when:
+  - ansible_facts.services['firewalld.service'] is defined
+  - ansible_facts.services['firewalld.service'].state == 'Running'

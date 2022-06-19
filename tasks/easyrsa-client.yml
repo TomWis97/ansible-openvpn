@@ -1,0 +1,28 @@
+- name: Generate client certificates
+  block:
+  - name: Create certificate request (with password)
+    when: item.password is defined
+    ansible.builtin.expect:
+      command: "{{ openvpn_easyrsa_install_location }}/easyrsa gen-req {{ item.hostname }}"
+      chdir: "{{ openvpn_easyrsa_pki }}"
+      creates: "{{ openvpn_easyrsa_pki }}/reqs/{{ item.hostname }}.req"
+      timeout: 300
+      responses:
+        "Enter PEM pass phrase.*": "{{ item.password }}"
+        "Verifying - Enter PEM pass phrase.*": "{{ item.password }}"
+
+  - name: Create certificate request (no password)
+    when: item.password is not defined
+    ansible.builtin.command: "{{ openvpn_easyrsa_install_location }}/easyrsa gen-req {{ item.hostname }} nopass"
+    args:
+      chdir: "{{ openvpn_easyrsa_pki }}"
+      creates: "{{ openvpn_easyrsa_pki }}/reqs/{{ item.hostname }}.req"
+
+  - name: Sign certificate request
+    ansible.builtin.expect:
+      command: "{{ openvpn_easyrsa_install_location }}/easyrsa sign-req client {{ item.hostname }}"
+      chdir: "{{ openvpn_easyrsa_pki }}"
+      creates: "{{ openvpn_easyrsa_pki }}/issued/{{ item.hostname }}.crt"
+      responses:
+        "Enter pass phrase for.*:": "{{ openvpn_easyrsa_ca_pass }}"
+

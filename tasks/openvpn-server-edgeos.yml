@@ -1,0 +1,11 @@
+---
+- name: Common OpenVPN tasks
+  include_tasks: openvpn-server-common.yml
+
+- name: Configure OpenVPN interface
+  vars:
+    ansible_connection: network_cli
+    ansible_network_os: edgeos
+  community.network.edgeos_config:
+    comment: "Configured by ansible-openvpn"
+    lines: "{{ (lookup('template', 'openvpn-server-edgeos.yml.j2') | from_yaml).config }}"
