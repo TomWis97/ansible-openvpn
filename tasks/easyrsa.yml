@@ -122,6 +122,7 @@
     timeout: 300
     responses:
       "New CA Key Passphrase:": "{{ openvpn_easyrsa_ca_pass }}"
+      "Enter PEM pass phrase:": "{{ openvpn_easyrsa_ca_pass }}"
 
 - name: Server certificate
   become: yes
