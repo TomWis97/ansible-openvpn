@@ -1,5 +1,6 @@
 ---
 - name: Restart OpenVPN
-  systemd:
+  become: yes
+  ansible.builtin.systemd:
     name: "openvpn-server@{{ openvpn_server_interface }}"
     state: restarted
