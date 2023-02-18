@@ -11,7 +11,7 @@
   - openvpn-server
 
 - name: Place OpenVPN Server config
-  template:
+  ansible.builtin.template:
     dest: "/etc/openvpn/server/{{ openvpn_server_interface }}.conf"
     mode: '600'
     owner: root
@@ -19,7 +19,7 @@
   notify: Restart OpenVPN
 
 - name: Enable OpenVPN Service
-  systemd:
+  ansible.builtin.systemd:
     enabled: yes
     name: "openvpn-server@{{ openvpn_server_interface }}"
     state: started
@@ -29,7 +29,7 @@
   ansible.builtin.service_facts:
 
 - name: Allow VPN through firewalld
-  firewalld:
+  ansible.posix.firewalld:
     immediate: yes
     permanent: yes
     port: "{{ openvpn_remote_port }}/{{ openvpn_remote_protocol }}"

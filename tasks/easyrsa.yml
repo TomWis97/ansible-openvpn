@@ -2,13 +2,13 @@
 # I'm really sorry for `command`s here. I don't feel like writing a module for EasyRSA.
 
 - name: Check if EasyRSA is already installed
-  stat:
+  ansible.builtin.stat:
     path: "{{ openvpn_easyrsa_install_location }}"
   register: easyrsa_install_status
 
   # Because of weird Ansible behaviour with when in a block, always lookup EasyRSA version.
 - name: Find latest EasyRSA version and assets
-  uri:
+  ansible.builtin.uri:
     url: https://api.github.com/repos/openvpn/easy-rsa/releases
     return_content: yes
   register: easyrsa_releases
@@ -17,37 +17,37 @@
   when: not easyrsa_install_status.stat.exists
   block:
   - name: Discover download URL
-    set_fact:
+    ansible.builtin.set_fact:
       easyrsa_download_url: "{{ item }}"
     loop: "{{ easyrsa_releases.json | json_query('[0].assets[].browser_download_url') | default([]) }}"
     when: item.endswith('.tgz')
   - name: Download EasyRSA release tarball
-    uri:
+    ansible.builtin.uri:
       url: "{{ easyrsa_download_url }}"
       dest: /tmp/easyrsa-release.tgz
   - name: Create temporary directory
-    file:
+    ansible.builtin.file:
       path: /tmp/easyrsa-archive
       state: directory
   - name: Extract EaseRSA archive
-    unarchive:
+    ansible.builtin.unarchive:
       src: /tmp/easyrsa-release.tgz
       dest: /tmp/easyrsa-archive
       remote_src: yes
   - name: Copy from extracted archive to install location
     become: yes
     delegate_to: "{{ inventory_hostname }}"
-    copy:
+    ansible.builtin.copy:
       src: "/tmp/easyrsa-archive/{{ '.'.join(easyrsa_download_url.split('/')[-1].split('.')[0:-1]) }}/"
       dest: "{{ openvpn_easyrsa_install_location }}"
       remote_src: yes
   always:
   - name: Delete EasyRSA archive location
-    file:
+    ansible.builtin.file:
       path: /tmp/easyrsa-archive
       state: absent
   - name: Delete EasyRSA release tarball
-    file:
+    ansible.builtin.file:
       path: /tmp/easyrsa-release.tgz
       state: absent
 

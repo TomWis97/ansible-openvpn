@@ -1,6 +1,6 @@
 ---
 - name: Run some sanity checks on variables
-  assert:
+  ansible.builtin.assert:
     that:
     - openvpn_remote_protocol in ["tcp", "udp"]
     - openvpn_tls_auth in [True, False]
@@ -13,7 +13,7 @@
     mode: '0400'
 
 - name: Generate Diffie Hellman parameters (will take at least 10 minutes)
-  command: openssl dhparam -out "{{ openvpn_easyrsa_pki }}/dh.pem" -2 4096
+  ansible.builtin.command: openssl dhparam -out "{{ openvpn_easyrsa_pki }}/dh.pem" -2 4096
   args:
     creates: "{{ openvpn_easyrsa_pki }}/dh.pem"
 
@@ -21,7 +21,7 @@
   when: openvpn_tls_auth
   block:
   - name: Generate TLS Auth parameters
-    command: openvpn --genkey --secret "{{ openvpn_easyrsa_pki }}/ta.key"
+    ansible.builtin.command: openvpn --genkey --secret "{{ openvpn_easyrsa_pki }}/ta.key"
     args:
       creates: "{{ openvpn_easyrsa_pki }}/ta.key"
   - name: Get TLS key
