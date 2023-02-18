@@ -21,3 +21,6 @@ persist-key
 persist-tun
 verb 3
 status /tmp/openvpn-server-status-{{ openvpn_server_interface }}
+{% if openvpn_tls_auth %}
+tls-auth {{ openvpn_easyrsa_pki }}/ta.key 0
+{% endif %}
