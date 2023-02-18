@@ -14,8 +14,8 @@ push "dhcp-option DNS {{ openvpn_server_name_server }}"
 push "dhcp-option DOMAIN {{ openvpn_server_domain_name }}"
 client-to-client
 keepalive 10 120
-user nobody
-group nogroup
+user {{ openvpn_server_user }}
+group {{ openvpn_server_group }}
 persist-key
 persist-tun
 verb 3
