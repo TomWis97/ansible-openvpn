@@ -14,11 +14,18 @@
   - "{{ openvpn_easyrsa_pki }}/ca.crt"
   - "{{ openvpn_easyrsa_pki }}/issued/{{ item.hostname }}.crt"
   - "{{ openvpn_easyrsa_pki }}/private/{{ item.hostname }}.key"
+  - "{{ openvpn_easyrsa_pki }}/ta.key"
   loop_control:
     loop_var: path
     label: "{{ item }}"
   no_log: yes
   register: client_certs
+
+- name: Get TLS Auth key
+  ansible.builtin.slurp:
+    src: "{{ openvpn_easyrsa_pki }}/ta.key"
+  register: ta_key_slurp
+  when: openvpn_tls_auth
 
 - name: Render client configuration
   ansible.builtin.template:
@@ -29,3 +36,4 @@
     openvpn_client_ca: "{{ client_certs.results[0].content | b64decode }}"
     openvpn_client_cert: "{{ client_certs.results[1].content | b64decode }}"
     openvpn_client_key: "{{ client_certs.results[2].content | b64decode }}"
+    openvpn_ta_key: "{{ ta_key_slurp.content | b64decode }}"
