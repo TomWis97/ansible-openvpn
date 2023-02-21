@@ -3,8 +3,12 @@
 config:
 - set interfaces openvpn {{ openvpn_server_interface }} mode server
 - set interfaces openvpn {{ openvpn_server_interface }} server subnet {{ openvpn_server_subnet }}
+{% if openvpn_server_name_server is defined %}
 - set interfaces openvpn {{ openvpn_server_interface }} server name-server {{ openvpn_server_name_server }}
-- set interfaces openvpn {{ openvpn_server_interface }} server domain-name int.TomWishaupt.nl
+{% endif %}
+{% if openvpn_server_name_server is defined %}
+- set interfaces openvpn {{ openvpn_server_interface }} server domain-name {{ openvpn_server_domain_name }}
+{% endif %}
 {% for route in openvpn_server_push_routes %}
 - set interfaces openvpn {{ openvpn_server_interface }} server push-route {{ route }}
 {% endfor %}

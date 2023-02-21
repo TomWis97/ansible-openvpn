@@ -10,8 +10,12 @@ topology subnet
 {% for route in openvpn_server_push_routes %}
 push "route {{ route | ansible.utils.ipaddr('network') }} {{ route | ansible.utils.ipaddr('netmask') }}"
 {% endfor %}
+{% if openvpn_server_name_server is defined %}
 push "dhcp-option DNS {{ openvpn_server_name_server }}"
+{% endif %}
+{% if openvpn_server_name_server is defined %}
 push "dhcp-option DOMAIN {{ openvpn_server_domain_name }}"
+{% endif %}
 client-to-client
 keepalive 10 120
 user {{ openvpn_server_user }}

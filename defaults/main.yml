@@ -22,8 +22,9 @@ openvpn_remote_protocol: udp
 openvpn_server_interface: vtun0
 openvpn_server_subnet: 10.254.254.0/24
 openvpn_server_push_routes: []
-openvpn_server_name_server: 10.254.254.1
-openvpn_server_domain_name: example.com
 openvpn_server_user: openvpn
 openvpn_server_group: openvpn
 openvpn_tls_auth: yes
+# Don't define these by default
+#openvpn_server_name_server: 10.254.254.1
+#openvpn_server_domain_name: example.com
