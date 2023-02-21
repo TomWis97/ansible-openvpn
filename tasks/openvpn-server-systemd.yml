@@ -36,4 +36,4 @@
     state: enabled
   when:
   - ansible_facts.services['firewalld.service'] is defined
-  - ansible_facts.services['firewalld.service'].state == 'Running'
+  - ansible_facts.services['firewalld.service'].state | lower == 'Running'
